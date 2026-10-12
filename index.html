@@ -852,7 +852,14 @@ async function teacherPage(){
       const st1=feedbackStatus(s?.m1,1), st2=feedbackStatus(s?.m2,2);
       return '<div class="feedback"><b>'+escapeHTML(s?.name||rec.name)+'</b> • '+escapeHTML(s?.cls||rec.className)+'<br>Response ID: '+escapeHTML(rec.responseID)+'<br>Kes 01: '+m1+'/6 &nbsp; <span class="status-badge '+st1.cls+'">'+st1.label+'</span><br>Kes 02: '+m2+'/4 &nbsp; <span class="status-badge '+st2.cls+'">'+st2.label+'</span><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="primary" onclick="reviewServer('+i+')">📋 Semak Respons</button><button class="soft danger-btn" onclick="deleteStudentServer('+i+')">🗑️ Padam Rekod</button></div></div>';
     }).join('');
-  }catch(e){document.getElementById('teacherOut').innerHTML='<div class="feedback pending">Tidak dapat memuatkan database.</div>';}
+  }catch(e){
+    document.getElementById('teacherOut').innerHTML =
+      '<div class="feedback pending"><b>Database gagal dimuatkan.</b><br>Ralat: ' +
+      escapeHTML(e && e.message ? e.message : String(e)) +
+      '<br><br><span class="small">Endpoint: ' + escapeHTML(API_ENDPOINT) +
+      '</span></div>';
+    console.error('teacherPage error:', e);
+  }
 }
 
 function reviewServer(index){
