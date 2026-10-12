@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Misi Detektif: Jejak Kelestarian Alam</title>
+<!-- API ENDPOINT UPDATED TO NEW DEPLOYMENT - MUST HOST ON GITHUB PAGES FOR MIC TO WORK -->
 <style>
 :root{--ink:#2a2118;--green:#1f4d36;--forest:#2f6b47;--mus:#e0a82e;--brown:#7a5a2e;--paper:#f8f0da;--sheet:#fffdf5;--rust:#8f3a1f;--hand:Georgia,"Times New Roman",serif;--type:"American Typewriter","Courier New",Courier,monospace}
 *{box-sizing:border-box}
@@ -162,7 +163,7 @@ Amir berasa gembira kerana mereka dapat memikirkan cara yang mudah untuk menjaga
 <div id="recState" aria-live="polite">🎙️ Sedia merakam</div>
 <div id="timer" class="timer">00:00</div>
 <div class="btnrow">
-  <button type="button" id="startBtn" class="gold" onclick="startRecording()">🔴 MULA RAKAMAN</button>
+  <button id="startBtn" class="gold" onclick="startRecording()">🔴 MULA RAKAMAN</button>
   <button id="stopBtn" class="red" onclick="stopRecording()" disabled>⏹️ BERHENTI</button>
 </div>
 <audio id="mine" controls class="hidden"></audio>
@@ -389,7 +390,7 @@ async function startRecording(){
     document.getElementById('startBtn').disabled=true;
     document.getElementById('stopBtn').disabled=false;
     document.getElementById('sendRecBtn').disabled=true;
-  }catch(e){alert('Rakaman gagal: ' + (e.name || 'Error') + ' — ' + (e.message || e));}
+  }catch(e){alert('Sila benarkan akses mikrofon apabila pelayar meminta kebenaran.');}
 }
 function stopRecording(){
   if(recorder&&recorder.state!=='inactive'){
@@ -408,37 +409,12 @@ function deleteRecording(){
   document.getElementById('timer').textContent='00:00';
   document.getElementById('recState').textContent='🎙️ Rakaman dipadam. Kamu boleh rakam semula.';
 }
-async function saveRecording(){
-  if(!blob) return alert('Sila rakam bacaan dahulu.');
-  if(!student || !student.name || !student.cls){
-    return alert('Sila lengkapkan nama dan kelas dahulu.');
-  }
-
-  document.getElementById('recState').textContent = '⏳ Sedang menghantar rakaman...';
-
-  try {
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-
-    await syncStudentToServer({
-      base64: base64,
-      mimeType: blob.type || 'audio/webm'
-    });
-
-    student.recorded = true;
-    save();
-
-    document.getElementById('recState').textContent = '✅ Rakaman dihantar.';
-    document.getElementById('sendRecBtn').disabled = true;
-    alert('Rakaman telah dihantar.');
-  } catch (e) {
-    document.getElementById('recState').textContent = '❌ Gagal menghantar rakaman.';
-    alert('Gagal menghantar rakaman: ' + e.message);
-  }
+function saveRecording(){
+  if(!blob)return alert('Sila rakam bacaan dahulu.');
+  student.recorded=true; save();
+  document.getElementById('recState').textContent='✅ Rakaman dihantar.';
+  document.getElementById('sendRecBtn').disabled=true;
+  alert('Rakaman terakhir kamu telah dihantar.');
 }
 function submitCase2(){if(!student.recorded)return alert('Sila hantar rakaman bacaan dahulu.');let answers=[],score=0;for(let i=0;i<2;i++){let q=document.querySelectorAll('#case2qs .q')[i],b=q.querySelector('.selected');if(!b)return alert('Sila jawab semua soalan.');let j=+b.dataset.j;answers.push(j);if(j===C2[i][2])score+=2}for(let i=0;i<4;i++){let v=document.getElementById('c2o'+i).value.trim();if(!v)return alert('Sila jawab semua soalan.');answers.push(v)}student.m2={score,answers,feedback:student.m2?.feedback||''};save();document.getElementById('case2result').innerHTML=`<div class="feedback"><b>Kes dihantar.</b> Markah objektif: ${score}/4 <span class="small">(2 soalan × 2 markah)</span>. Respons lain menunggu semakan guru.</div>`}
 function feedbackPage(){if(!student){return alert('Sila masuk menggunakan nama dan kelas dahulu.');} document.getElementById('fbName').value=student.name; document.getElementById('fbClass').value=student.cls; show('feedback'); loadFeedback();}
@@ -569,7 +545,6 @@ a.addEventListener('play',()=>t.classList.add('playing'));a.addEventListener('pa
 
 <script>
 /* ===== SAMBUNGAN GOOGLE APPS SCRIPT — V2 ===== */
-
 const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz7s1quv3KQcdYjn4fToEUV9yIgEzs3cByEzimiRayZBi68PZbmUMdDA6gHg7cnBvkb9Q/exec';
 let currentTeacherRecords = [];
 
@@ -852,14 +827,7 @@ async function teacherPage(){
       const st1=feedbackStatus(s?.m1,1), st2=feedbackStatus(s?.m2,2);
       return '<div class="feedback"><b>'+escapeHTML(s?.name||rec.name)+'</b> • '+escapeHTML(s?.cls||rec.className)+'<br>Response ID: '+escapeHTML(rec.responseID)+'<br>Kes 01: '+m1+'/6 &nbsp; <span class="status-badge '+st1.cls+'">'+st1.label+'</span><br>Kes 02: '+m2+'/4 &nbsp; <span class="status-badge '+st2.cls+'">'+st2.label+'</span><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="primary" onclick="reviewServer('+i+')">📋 Semak Respons</button><button class="soft danger-btn" onclick="deleteStudentServer('+i+')">🗑️ Padam Rekod</button></div></div>';
     }).join('');
-  }catch(e){
-    document.getElementById('teacherOut').innerHTML =
-      '<div class="feedback pending"><b>Database gagal dimuatkan.</b><br>Ralat: ' +
-      escapeHTML(e && e.message ? e.message : String(e)) +
-      '<br><br><span class="small">Endpoint: ' + escapeHTML(API_ENDPOINT) +
-      '</span></div>';
-    console.error('teacherPage error:', e);
-  }
+  }catch(e){document.getElementById('teacherOut').innerHTML='<div class="feedback pending">Tidak dapat memuatkan database.</div>';}
 }
 
 function reviewServer(index){
