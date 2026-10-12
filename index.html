@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ujian Rakaman Misi Detektif</title>
+</head>
+<body>
+  <h2>Ujian Mikrofon Misi Detektif</h2>
+  <button id="start">Mula Rakaman</button>
+  <button id="stop" disabled>Berhenti</button>
+  <audio id="audio" controls></audio>
+  <p id="status">Sedia.</p>
+
+  <script>
+    let recorder, chunks = [], stream;
+
+    document.getElementById('start').onclick = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = e => {
+          if (e.data.size) chunks.push(e.data);
+        };
+        recorder.onstop = () => {
+          document.getElementById('audio').src =
+            URL.createObjectURL(new Blob(chunks, { type: recorder.mimeType }));
+          stream.getTracks().forEach(t => t.stop());
+          document.getElementById('status').textContent = 'Rakaman berjaya.';
+        };
+        recorder.start();
+        document.getElementById('start').disabled = true;
+        document.getElementById('stop').disabled = false;
+        document.getElementById('status').textContent = 'Sedang merakam...';
+      } catch (e) {
+        document.getElementById('status').textContent =
+          'Ralat: ' + e.name + ' — ' + e.message;
+      }
+    };
+
+    document.getElementById('stop').onclick = () => {
+      if (recorder && recorder.state !== 'inactive') recorder.stop();
+      document.getElementById('start').disabled = false;
+      document.getElementById('stop').disabled = true;
+    };
+  </script>
+</body>
+</html>
